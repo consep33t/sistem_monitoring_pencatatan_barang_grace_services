@@ -1,15 +1,16 @@
-// app/api/images/[filename]/route.js
-
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 
 export const GET = async (req, { params }) => {
   try {
-    const { filename } = params;
+    let { filename } = await params;
 
-    // Validasi filename
-    if (!filename || !/^[\w-.]+$/.test(filename)) {
+    // Decode URI component (mengubah %20 dll jadi spasi, dll)
+    filename = decodeURIComponent(filename);
+
+    // Validasi nama file setelah decode
+    if (!filename || !/^[\w\-.,\s]+$/.test(filename)) {
       return NextResponse.json(
         { error: "Nama file tidak valid" },
         { status: 400 }
@@ -22,11 +23,11 @@ export const GET = async (req, { params }) => {
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": getMimeType(filename),
-        "Cache-Control": "public, max-age=604800", // Cache 1 minggu
+        "Cache-Control": "public, max-age=604800",
       },
     });
-  } catch (err) {
-    console.error("Error serving image:", err);
+  } catch (error) {
+    console.error("Error serving image:", error);
     return NextResponse.json(
       { error: "Gambar tidak ditemukan" },
       { status: 404 }
@@ -34,7 +35,6 @@ export const GET = async (req, { params }) => {
   }
 };
 
-// Helper untuk menentukan MIME type
 function getMimeType(filename) {
   const ext = filename.split(".").pop().toLowerCase();
   const mimeTypes = {
@@ -43,6 +43,7 @@ function getMimeType(filename) {
     png: "image/png",
     gif: "image/gif",
     webp: "image/webp",
+    svg: "image/svg+xml",
   };
   return mimeTypes[ext] || "application/octet-stream";
 }
