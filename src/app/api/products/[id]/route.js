@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
-import connection from "@/app/lib/db";
+import pool from "@/app/lib/db";
 import fs from "fs/promises";
 import { existsSync, unlinkSync } from "fs";
 import path from "path";
 
-/* ───────────── GET /api/product/[id] ───────────── */
+/* ───────────── GET /api/products/[id] ───────────── */
 export const GET = async (_req, ctx) => {
-  const { id } = await ctx.params;
+  const { id } = ctx.params;
 
   try {
-    const [rows] = await connection.promise().query(
+    const [rows] = await pool.query(
       `SELECT p.*, pi.image_url
-         FROM products p
-         LEFT JOIN product_images pi
-           ON pi.product_id = p.id AND pi.is_main = 1
+       FROM products p
+       LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1
        WHERE p.id = ?`,
       [id]
     );
@@ -24,9 +23,10 @@ export const GET = async (_req, ctx) => {
         { status: 404 }
       );
     }
-    return NextResponse.json(rows[0]); // 200 OK
+
+    return NextResponse.json(rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("GET product error:", err);
     return NextResponse.json(
       { error: "Gagal mengambil produk" },
       { status: 500 }
@@ -34,48 +34,49 @@ export const GET = async (_req, ctx) => {
   }
 };
 
-/* ───────────── PUT /api/product/[id] ───────────── */
+/* ───────────── PUT /api/products/[id] ───────────── */
 export const PUT = async (req, ctx) => {
-  const { id } = ctx.params; // tidak perlu await di sini
+  const { id } = ctx.params;
 
+  let conn;
   try {
-    /* 1. Form-data */
-    const fd = await req.formData();
-    const sku = fd.get("sku");
-    const name = fd.get("name");
-    const category = fd.get("category");
-    const brand = fd.get("brand");
-    const unit_cost = parseFloat(fd.get("unit_cost"));
-    const unit_price = parseFloat(fd.get("unit_price"));
-    const file = fd.get("gambar"); // File | null
+    const formData = await req.formData();
+    const sku = formData.get("sku");
+    const name = formData.get("name");
+    const category = formData.get("category");
+    const brand = formData.get("brand");
+    const unit_cost = parseFloat(formData.get("unit_cost"));
+    const unit_price = parseFloat(formData.get("unit_price"));
+    const file = formData.get("gambar");
 
     if (!sku || !name || isNaN(unit_cost) || isNaN(unit_price)) {
       return NextResponse.json(
-        { error: "sku, name, unit_cost, unit_price wajib diisi" },
+        { error: "Data tidak lengkap" },
         { status: 400 }
       );
     }
 
-    /* 2. Ambil data lama */
-    const [oldRows] = await connection.promise().query(
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [oldRows] = await conn.query(
       `SELECT p.*, pi.image_url
-           FROM products p
-           LEFT JOIN product_images pi
-             ON pi.product_id = p.id AND pi.is_main = 1
-         WHERE p.id = ?`,
+       FROM products p
+       LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1
+       WHERE p.id = ?`,
       [id]
     );
 
-    if (oldRows.length === 0)
+    if (oldRows.length === 0) {
+      await conn.release();
       return NextResponse.json(
         { error: "Produk tidak ditemukan" },
         { status: 404 }
       );
+    }
 
     const old = oldRows[0];
-
-    /* 3. Deteksi perubahan */
-    const textChanged =
+    const hasChanges =
       sku !== old.sku ||
       name !== old.name ||
       category !== old.category ||
@@ -86,37 +87,35 @@ export const PUT = async (req, ctx) => {
     const hasNewFile =
       file && typeof File !== "undefined" && file instanceof File;
 
-    if (!textChanged && !hasNewFile) {
+    if (!hasChanges && !hasNewFile) {
+      await conn.release();
       return NextResponse.json(
-        { message: "Tidak ada perubahan, data tetap disimpan." },
+        { message: "Tidak ada perubahan" },
         { status: 200 }
       );
     }
 
-    /* 4. Mulai transaksi (tanpa getConnection) */
-    await connection.promise().query("START TRANSACTION");
-
-    if (textChanged) {
-      await connection.promise().query(
+    if (hasChanges) {
+      await conn.query(
         `UPDATE products
-               SET sku = ?, name = ?, category = ?, brand = ?, unit_cost = ?, unit_price = ?
-             WHERE id = ?`,
+         SET sku = ?, name = ?, category = ?, brand = ?, unit_cost = ?, unit_price = ?
+         WHERE id = ?`,
         [sku, name, category || null, brand || null, unit_cost, unit_price, id]
       );
     }
 
-    /* 5. Proses gambar baru */
     if (hasNewFile) {
       const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       if (!allowed.includes(file.type)) {
-        await connection.promise().query("ROLLBACK");
+        await conn.rollback();
+        await conn.release();
         return NextResponse.json(
           { error: "Format gambar tidak didukung" },
           { status: 400 }
         );
       }
 
-      /* 5a. Hapus file & record lama */
+      // Hapus gambar lama
       if (old.image_url) {
         const oldPath = path.join(
           process.cwd(),
@@ -124,34 +123,29 @@ export const PUT = async (req, ctx) => {
           path.basename(old.image_url)
         );
         if (existsSync(oldPath)) unlinkSync(oldPath);
-        await connection
-          .promise()
-          .query(
-            `DELETE FROM product_images WHERE product_id = ? AND is_main = 1`,
-            [id]
-          );
+        await conn.query(
+          `DELETE FROM product_images WHERE product_id = ? AND is_main = 1`,
+          [id]
+        );
       }
 
-      /* 5b. Simpan file baru */
-      const uploadDir = path.join(process.cwd(), "gambar_container");
-      await fs.mkdir(uploadDir, { recursive: true });
+      // Simpan gambar baru
+      const dir = path.join(process.cwd(), "gambar_container");
+      await fs.mkdir(dir, { recursive: true });
 
       const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const destPath = path.join(uploadDir, filename);
-      await fs.writeFile(destPath, Buffer.from(await file.arrayBuffer()));
+      const fullPath = path.join(dir, filename);
+      await fs.writeFile(fullPath, Buffer.from(await file.arrayBuffer()));
 
       const imageUrl = `/api/images/${filename}`;
-
-      await connection
-        .promise()
-        .query(
-          `INSERT INTO product_images (product_id, image_url, is_main) VALUES (?, ?, 1)`,
-          [id, imageUrl]
-        );
+      await conn.query(
+        `INSERT INTO product_images (product_id, image_url, is_main) VALUES (?, ?, 1)`,
+        [id, imageUrl]
+      );
     }
 
-    /* 6. Commit */
-    await connection.promise().query("COMMIT");
+    await conn.commit();
+    await conn.release();
 
     return NextResponse.json(
       { message: "Produk berhasil diperbarui" },
@@ -159,10 +153,12 @@ export const PUT = async (req, ctx) => {
     );
   } catch (err) {
     console.error("Update error:", err);
-    // pastikan rollback jika transaksi sudah dibuka
-    try {
-      await connection.promise().query("ROLLBACK");
-    } catch {}
+    if (conn) {
+      try {
+        await conn.rollback();
+        await conn.release();
+      } catch {}
+    }
     return NextResponse.json(
       { error: "Gagal mengupdate produk" },
       { status: 500 }

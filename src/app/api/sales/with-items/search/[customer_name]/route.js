@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import connection from "@/app/lib/db";
+import pool from "@/app/lib/db";
 
 export async function GET(request, context) {
   const { customer_name } = await context.params;
@@ -44,9 +44,7 @@ export async function GET(request, context) {
     `;
 
   try {
-    const [rows] = await connection
-      .promise()
-      .query(sql, [`%${customer_name}%`]);
+    const [rows] = await pool.query(sql, [`%${customer_name}%`]);
     if (rows.length === 0) {
       return NextResponse.json(
         { error: "Data penjualan tidak ditemukan" },

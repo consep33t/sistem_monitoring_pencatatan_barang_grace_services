@@ -4,15 +4,18 @@ import path from "path";
 
 export const GET = async (req, { params }) => {
   try {
-    let { filename } = await params;
+    let { filename } = params;
 
-    // Decode URI component (mengubah %20 dll jadi spasi, dll)
+    // Decode untuk mengatasi %20 atau karakter URL encoded
     filename = decodeURIComponent(filename);
 
-    // Validasi nama file setelah decode
-    if (!filename || !/^[\w\-.,\s]+$/.test(filename)) {
+    // Validasi nama file untuk mencegah path traversal
+    if (
+      !filename ||
+      !/^[\w\-.,\s]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(filename)
+    ) {
       return NextResponse.json(
-        { error: "Nama file tidak valid" },
+        { error: "Nama file tidak valid atau format tidak didukung" },
         { status: 400 }
       );
     }
@@ -21,9 +24,10 @@ export const GET = async (req, { params }) => {
     const fileBuffer = await fs.readFile(filePath);
 
     return new NextResponse(fileBuffer, {
+      status: 200,
       headers: {
         "Content-Type": getMimeType(filename),
-        "Cache-Control": "public, max-age=604800",
+        "Cache-Control": "public, max-age=604800", // 7 hari caching
       },
     });
   } catch (error) {
@@ -36,7 +40,7 @@ export const GET = async (req, { params }) => {
 };
 
 function getMimeType(filename) {
-  const ext = filename.split(".").pop().toLowerCase();
+  const ext = path.extname(filename).toLowerCase().replace(".", "");
   const mimeTypes = {
     jpg: "image/jpeg",
     jpeg: "image/jpeg",

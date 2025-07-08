@@ -1,18 +1,18 @@
+// app/api/products/search/[name]/route.js
 import { NextResponse } from "next/server";
-import connection from "@/app/lib/db";
+import pool from "@/app/lib/db";
 
-// GET Barang berdasarkan nama_barang (slug)
 export const GET = async (_req, ctx) => {
-  const { name } = await ctx.params;
+  const { name } = ctx.params;
 
   try {
-    const keyword = `%${name}%`; // wildcard untuk pencarian sebagian
+    const keyword = `%${name}%`;
 
-    const [rows] = await connection.promise().query(
+    const [rows] = await pool.query(
       `SELECT p.*, pi.image_url
-         FROM products p
-         LEFT JOIN product_images pi
-           ON pi.product_id = p.id AND pi.is_main = 1
+       FROM products p
+       LEFT JOIN product_images pi
+         ON pi.product_id = p.id AND pi.is_main = 1
        WHERE p.name LIKE ? COLLATE utf8mb4_general_ci`,
       [keyword]
     );
@@ -23,9 +23,10 @@ export const GET = async (_req, ctx) => {
         { status: 404 }
       );
     }
-    return NextResponse.json(rows[0]); // 200 OK
+
+    return NextResponse.json(rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("Database error:", err);
     return NextResponse.json(
       { error: "Gagal mengambil produk" },
       { status: 500 }
