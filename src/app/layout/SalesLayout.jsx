@@ -55,6 +55,7 @@ const SalesLayout = () => {
     }
   };
 
+  console.log(selectedSale);
   if (loading) return <div>Loading...</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
 
@@ -86,7 +87,7 @@ const SalesLayout = () => {
   };
 
   return (
-    <div>
+    <div className="overflow-y-scroll">
       <h1>Sales Dashboard</h1>
       <p>Total Sales: {sales.length}</p>
       <form onSubmit={handleSearch} style={{ marginBottom: 16 }}>
@@ -206,11 +207,15 @@ const SalesLayout = () => {
                 {Number(selectedSale.discount_total).toLocaleString("id-ID")}
               </p>
               <p>
-                <strong>Catatan:</strong>Rp {selectedSale.notes}
+                <strong>Catatan:</strong> {selectedSale.notes}
               </p>
               <p>
                 <strong>Total Harga:</strong> Rp{" "}
                 {Number(selectedSale.grand_total).toLocaleString("id-ID")}
+              </p>
+              <p>
+                <strong>Metode Pembayaran :</strong>{" "}
+                {selectedSale.payment_methods_name}
               </p>
               <p>
                 <strong>Bayar:</strong>Rp{" "}

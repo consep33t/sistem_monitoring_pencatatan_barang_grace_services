@@ -1,17 +1,25 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const links = [
-  { href: "/", label: "Kasir" },
-  { href: "/penjualan", label: "Penjualan" },
-  { href: "/products/list", label: "Produk" },
-  { href: "/services", label: "Services" },
-  { href: "/pengaturan", label: "Pengaturan" },
+  { href: "/dashboard", label: "Kasir" },
+  { href: "/dashboard/penjualan", label: "Penjualan" },
+  { href: "/dashboard/products/list", label: "Produk" },
+  { href: "/dashboard/services", label: "Services" },
+  { href: "/dashboard/pengaturan", label: "Pengaturan" },
 ];
 
-const SideBar = () => {
+const SideBar = ({ user }) => {
   const pathname = usePathname();
+
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+  };
 
   return (
     <div className="flex flex-col justify-between h-screen py-5 px-5 ">
@@ -31,7 +39,12 @@ const SideBar = () => {
           </Link>
         ))}
       </div>
+      <h1 className="text-xl font-bold">
+        Selamat Datang, {user.employee_name}
+      </h1>
+      <p className="text-sm text-gray-600">Role: {user.role_name}</p>
       <p className="text-center">@bla bla bla</p>
+      <button onClick={handleLogout}>logout</button>
     </div>
   );
 };

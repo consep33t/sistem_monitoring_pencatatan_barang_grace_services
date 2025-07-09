@@ -3,8 +3,8 @@ import Link from "next/link";
 
 const productsListPage = () => {
   return (
-    <div className="flex flex-col w-full p-8">
-      <Link href="/products/add" className="btn btn-primary mb-4">
+    <div className="flex h-screen flex-col w-full p-8">
+      <Link href="/dashboard/products/add" className="btn btn-primary mb-4">
         Tambah Produk
       </Link>
       <ProductsList />

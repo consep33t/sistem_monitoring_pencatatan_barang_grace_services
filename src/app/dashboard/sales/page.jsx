@@ -1,4 +1,4 @@
-import SalesLayout from "../layout/SalesLayout";
+import SalesLayout from "@/app/layout/SalesLayout";
 
 const salespage = () => {
   return (

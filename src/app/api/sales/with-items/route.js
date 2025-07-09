@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
+import { cookies } from "next/headers";
 
 export async function GET() {
   const sql = `
@@ -49,5 +50,121 @@ export async function GET() {
       { error: "Gagal mengambil data penjualan" },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  const {
+    invoice_no,
+    customer, // { name, phone }
+    sub_total,
+    discount_total,
+    grand_total,
+    paid,
+    payment_method,
+    notes,
+    items = [],
+    additional_costs = [],
+  } = body;
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    // 1. Ambil employee_id dari session
+    const cookieStore = cookies();
+    const session = cookieStore.get("session");
+    if (!session) throw new Error("User tidak login");
+
+    const user = JSON.parse(session.value);
+    const employee_id = user.id;
+
+    // 2. Tangani customer: cari berdasarkan name + phone
+    let customer_id = null;
+
+    if (customer && customer.name && customer.phone) {
+      const [rows] = await conn.query(
+        `SELECT id FROM customers WHERE name = ? AND phone = ? LIMIT 1`,
+        [customer.name, customer.phone]
+      );
+
+      if (rows.length > 0) {
+        customer_id = rows[0].id;
+      } else {
+        const [result] = await conn.query(
+          `INSERT INTO customers (name, phone) VALUES (?, ?)`,
+          [customer.name, customer.phone]
+        );
+        customer_id = result.insertId;
+      }
+    }
+
+    // 3. Insert ke tabel sales
+    const [salesResult] = await conn.query(
+      `INSERT INTO sales
+        (invoice_no, customer_id, employee_id, sub_total, discount_total, grand_total, paid, payment_method, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        invoice_no,
+        customer_id,
+        employee_id,
+        sub_total,
+        discount_total,
+        grand_total,
+        paid,
+        payment_method,
+        notes,
+      ]
+    );
+    const sales_id = salesResult.insertId;
+
+    // 4. Insert ke tabel sales_items
+    for (const item of items) {
+      const { item_type, item_id, qty, unit_price, total } = item;
+
+      await conn.query(
+        `INSERT INTO sales_items
+          (sales_id, item_type, product_id, service_id, qty, unit_price, total)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          sales_id,
+          item_type,
+          item_type === "product" ? item_id : null,
+          item_type === "service" ? item_id : null,
+          qty,
+          unit_price,
+          total,
+        ]
+      );
+    }
+
+    // 5. Insert biaya tambahan
+    for (const cost of additional_costs) {
+      const { name, cost: costValue } = cost;
+      if (name && parseFloat(costValue) > 0) {
+        await conn.query(
+          `INSERT INTO additional_costs (sales_id, name, cost) VALUES (?, ?, ?)`,
+          [sales_id, name, costValue]
+        );
+      }
+    }
+
+    await conn.commit();
+    return NextResponse.json({
+      success: true,
+      message: "Transaksi penjualan berhasil disimpan",
+      sales_id,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error("POST /api/sales/with-items error:", err);
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
+  } finally {
+    conn.release();
   }
 }

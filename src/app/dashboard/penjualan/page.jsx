@@ -1,8 +1,8 @@
-import SalesLayout from "../layout/SalesLayout";
+import SalesLayout from "@/app/layout/SalesLayout";
 
 const penjualanPage = () => {
   return (
-    <div className="flex flex-col items-center w-full p-8 space-y-4">
+    <div className="flex h-screen flex-col items-center w-full p-8 space-y-4">
       <h1>Penjualan Page</h1>
       <SalesLayout />
     </div>
