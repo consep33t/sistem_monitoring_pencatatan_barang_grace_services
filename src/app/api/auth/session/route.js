@@ -4,7 +4,8 @@ import pool from "@/app/lib/db";
 
 export async function GET() {
   try {
-    const session = cookies().get("session");
+    const cookieStore = await cookies();
+    const session = cookieStore.get("session");
     if (!session) {
       return NextResponse.json(
         { error: "Tidak ada sesi login" },
@@ -12,7 +13,6 @@ export async function GET() {
       );
     }
 
-    // 🔥 Perbaikan di sini
     let userSession;
     try {
       userSession = JSON.parse(session.value);

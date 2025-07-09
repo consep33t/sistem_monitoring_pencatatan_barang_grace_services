@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import pool from "./db";
 
 export async function getSessionUser() {
-  const session = cookies().get("session");
+  const cookieStore = await cookies();
+  const session = cookieStore.get("session");
   if (!session) return null;
 
   try {

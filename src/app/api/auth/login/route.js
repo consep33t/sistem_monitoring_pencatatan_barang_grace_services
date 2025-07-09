@@ -33,7 +33,8 @@ export async function POST(req) {
     }
 
     // ✅ Simpan ke cookies
-    cookies().set(
+    const cookieStore = await cookies();
+    cookieStore.set(
       "session",
       JSON.stringify({
         id: user.id,
@@ -44,7 +45,7 @@ export async function POST(req) {
       {
         httpOnly: true,
         path: "/",
-        maxAge: 60 * 60 * 24, // 1 hari
+        maxAge: 60 * 60 * 2,
       }
     );
 
