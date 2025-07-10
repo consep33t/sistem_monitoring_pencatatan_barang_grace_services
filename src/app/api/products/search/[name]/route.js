@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
 
 export const GET = async (_req, ctx) => {
-  const { name } = ctx.params;
+  const { name } = await ctx.params;
 
   try {
     const keyword = `%${name}%`;

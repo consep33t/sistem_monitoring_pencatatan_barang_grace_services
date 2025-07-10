@@ -4,7 +4,7 @@ import path from "path";
 
 export const GET = async (req, { params }) => {
   try {
-    let { filename } = params;
+    let { filename } = await params;
 
     // Decode untuk mengatasi %20 atau karakter URL encoded
     filename = decodeURIComponent(filename);

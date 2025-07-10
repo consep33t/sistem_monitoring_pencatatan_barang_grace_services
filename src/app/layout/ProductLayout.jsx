@@ -127,7 +127,7 @@ export default function ProductsLayout({ products }) {
 
             <div className="mt-4 flex justify-between">
               <Link
-                href={`/products/${p.id}/edit`}
+                href={`/dashboard/products/${p.id}/edit`}
                 className="text-blue-600 text-sm hover:underline mt-2 inline-block"
               >
                 Edit

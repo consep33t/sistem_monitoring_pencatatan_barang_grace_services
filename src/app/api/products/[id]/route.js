@@ -6,7 +6,7 @@ import path from "path";
 
 /* ───────────── GET /api/products/[id] ───────────── */
 export const GET = async (_req, ctx) => {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
 
   try {
     const [rows] = await pool.query(
@@ -36,7 +36,7 @@ export const GET = async (_req, ctx) => {
 
 /* ───────────── PUT /api/products/[id] ───────────── */
 export const PUT = async (req, ctx) => {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
 
   let conn;
   try {
