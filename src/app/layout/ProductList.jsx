@@ -78,7 +78,7 @@ export default function ProductsList({ products }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button className="btn btn-neutral btn-outline px-4 py-2 rounded">
           Cari
         </button>
         {query && (

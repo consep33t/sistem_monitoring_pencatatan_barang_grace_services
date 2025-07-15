@@ -4,7 +4,7 @@ import { getSessionUser } from "../lib/session";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({ children }) {
-  const user = await getSessionUser(); // 🔁 harus pakai await
+  const user = await getSessionUser();
 
   if (!user) {
     redirect("/");
@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }) {
 
   return (
     <div className="w-full h-[100dvh] flex flex-col md:flex-row antialiased">
-      <div className="left w-full md:w-1/4 bg-white shadow-2xl">
+      <div className="left w-1/5 bg-white shadow-2xl">
         <SideBar user={user} />
       </div>
       <div className="flex-1">

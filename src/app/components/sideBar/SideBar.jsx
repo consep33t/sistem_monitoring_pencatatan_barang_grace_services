@@ -39,12 +39,12 @@ const SideBar = ({ user }) => {
           </Link>
         ))}
       </div>
-      <h1 className="text-xl font-bold">
-        Selamat Datang, {user.employee_name}
-      </h1>
-      <p className="text-sm text-gray-600">Role: {user.role_name}</p>
-      <p className="text-center">@bla bla bla</p>
-      <button onClick={handleLogout}>logout</button>
+      <div className="flex flex-col items-center gap-2">
+        <h1 className="font-bold">Selamat Datang, {user.employee_name}</h1>
+        <button className="btn" onClick={handleLogout}>
+          logout
+        </button>
+      </div>
     </div>
   );
 };

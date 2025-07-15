@@ -5,7 +5,10 @@ const pengaturanAkunPage = () => {
     <div>
       <h1>Pengaturan Akun</h1>
       <li className=" list-none">
-        <Link className="btn" href="/dashboard/pengaturan/akun/tambah-akun">
+        <Link
+          className="btn btn-neutral btn-outline"
+          href="/dashboard/pengaturan/akun/tambah-akun"
+        >
           Tambahkan Akun baru
         </Link>
       </li>

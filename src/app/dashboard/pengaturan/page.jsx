@@ -6,7 +6,10 @@ const pengaturanPage = () => {
       <h1 className="text-2xl font-bold mb-4">Pengaturan</h1>
       <ul>
         <li>
-          <Link className="btn" href="/dashboard/pengaturan/akun">
+          <Link
+            className="btn btn-neutral btn-outline"
+            href="/dashboard/pengaturan/akun"
+          >
             Pengaturan Akun
           </Link>
         </li>

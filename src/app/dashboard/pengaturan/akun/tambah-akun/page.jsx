@@ -140,7 +140,7 @@ export default function PengaturanTambahAkunPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-black text-white px-4 py-2 rounded w-full"
+            className="btn-neutral btn-outline btn px-4 py-2 rounded w-full"
           >
             {isSubmitting ? "Menyimpan..." : "Tambah Akun"}
           </button>

@@ -64,7 +64,6 @@ const SalesLayout = () => {
     setSearchLoading(true);
     setSearchError("");
     if (!search.trim()) {
-      // Jika search kosong, tampilkan semua sales
       await fetchSales();
       setSearchLoading(false);
       return;
@@ -88,8 +87,10 @@ const SalesLayout = () => {
 
   return (
     <div className="overflow-y-scroll">
-      <h1>Sales Dashboard</h1>
-      <p>Total Sales: {sales.length}</p>
+      <div className="flex space-x-4">
+        <h1>Sales Dashboard</h1>
+        <p>Total Sales: {sales.length}</p>
+      </div>
       <form onSubmit={handleSearch} style={{ marginBottom: 16 }}>
         <input
           type="text"
@@ -99,7 +100,11 @@ const SalesLayout = () => {
           className="border border-black rounded px-3 py-2 mb-2"
           style={{ width: "100%", maxWidth: "400px" }}
         />
-        <button type="submit" className="btn ml-2" disabled={searchLoading}>
+        <button
+          type="submit"
+          className="btn btn-neutral btn-outline ml-2"
+          disabled={searchLoading}
+        >
           {searchLoading ? "Searching..." : "Cari"}
         </button>
       </form>
