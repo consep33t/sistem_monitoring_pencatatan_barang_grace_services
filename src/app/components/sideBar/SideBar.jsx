@@ -7,7 +7,7 @@ const links = [
   { href: "/dashboard", label: "Kasir" },
   { href: "/dashboard/penjualan", label: "Penjualan" },
   { href: "/dashboard/products/list", label: "Produk" },
-  { href: "/dashboard/services", label: "Services" },
+  { href: "/dashboard/suppliers", label: "Suppliers" },
   { href: "/dashboard/pengaturan", label: "Pengaturan" },
 ];
 

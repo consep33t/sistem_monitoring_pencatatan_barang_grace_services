@@ -52,7 +52,7 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
       <div className="overflow-x-auto border rounded-box">
         <table className="table">
           <thead>
-            <tr>
+            <tr className="text-black">
               <th>No</th>
               <th>Produk</th>
               <th>Qty</th>

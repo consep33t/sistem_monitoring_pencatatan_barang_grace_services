@@ -8,8 +8,6 @@ import Link from "next/link";
 const productsListPage = async () => {
   const user = await getSessionUser();
 
-  console.log(user);
-
   return (
     <div className="flex h-screen flex-col w-full p-8 overflow-scroll">
       <Link
