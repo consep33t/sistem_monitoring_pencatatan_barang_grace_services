@@ -6,7 +6,7 @@ const StokLayout = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/products/stok")
+    fetch("/api/products/stok")
       .then((res) => res.json())
       .then((data) => setProducts(data))
       .catch((err) => console.error(err));
