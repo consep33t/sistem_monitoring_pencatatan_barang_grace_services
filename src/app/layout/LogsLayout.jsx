@@ -8,7 +8,7 @@ const LogsLayout = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/products/stok/logs")
+    fetch("/api/products/stok/logs")
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch logs");
