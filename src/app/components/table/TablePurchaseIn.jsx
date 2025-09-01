@@ -1,12 +1,66 @@
 "use client";
 import { useState } from "react";
+import AlertModal from "../AlertModal";
 
 const TablePurchaseIn = ({ purchases, refreshData }) => {
+  // State untuk konfirmasi hapus
+  const [confirm, setConfirm] = useState({
+    show: false,
+    id: null,
+    message: "",
+  });
+
+  // State untuk alert
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
   const [selected, setSelected] = useState(null);
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
   const [status, setStatus] = useState("");
 
+  // Fungsi untuk menampilkan alert
+  const showAlert = (type, message) => {
+    setAlert({ show: true, type, message });
+  };
+
+  // Konfirmasi hapus
+  const askDelete = (id) => {
+    setConfirm({
+      show: true,
+      id,
+      message: "Apakah kamu yakin ingin menghapus data ini?",
+    });
+  };
+
+  // Handle hapus
+  const handleDelete = async () => {
+    if (!confirm.id) return;
+
+    try {
+      const res = await fetch(`/api/products/stok/purchase-in/${confirm.id}`, {
+        method: "DELETE",
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showAlert("success", "Data berhasil dihapus");
+        refreshData?.();
+      } else {
+        showAlert("error", "Gagal menghapus: " + result.error);
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      showAlert("error", "Terjadi kesalahan");
+    } finally {
+      setConfirm({ show: false, id: null, message: "" });
+    }
+  };
+
+  // Handle edit
   const handleEditClick = (item) => {
     setSelected(item);
     setQty(item.qty);
@@ -17,7 +71,7 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
 
   const handleUpdate = async () => {
     if (!selected || qty === "" || cost === "" || status === "") {
-      alert("Semua field harus diisi");
+      showAlert("error", "Semua field harus diisi");
       return;
     }
 
@@ -29,26 +83,54 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
           stock_movement_id: selected.id,
           qty: parseInt(qty),
           cost: parseFloat(cost),
-          status, // include status here
+          status,
         }),
       });
 
       const result = await res.json();
       if (result.success) {
-        alert("Data berhasil diupdate");
+        showAlert("success", "Data berhasil diupdate");
         document.getElementById("modal_edit_purchase_in").close();
         refreshData?.();
       } else {
-        alert("Gagal: " + result.error);
+        showAlert("error", "Gagal: " + result.error);
       }
     } catch (error) {
       console.error("Update error:", error);
-      alert("Terjadi kesalahan");
+      showAlert("error", "Terjadi kesalahan");
     }
   };
 
   return (
     <>
+      {/* Custom Confirm Modal */}
+      <dialog id="confirm_modal" className="modal" open={confirm.show}>
+        <div className="modal-box bg-white">
+          <h3 className="font-bold text-lg">Konfirmasi</h3>
+          <p className="py-4">{confirm.message}</p>
+          <div className="modal-action">
+            <button className="btn btn-error rounded" onClick={handleDelete}>
+              Ya
+            </button>
+            <button
+              className="btn rounded"
+              onClick={() => setConfirm({ show: false, id: null, message: "" })}
+            >
+              Tidak
+            </button>
+          </div>
+        </div>
+      </dialog>
+
+      {/* Custom Alert Modal */}
+      <AlertModal
+        show={alert.show}
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert({ ...alert, show: false })}
+      />
+
+      {/* Tabel Pembelian */}
       <div className="overflow-x-auto border rounded-box">
         <table className="table">
           <thead>
@@ -79,10 +161,16 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
                 <td>{new Date(item.created_at).toLocaleDateString()}</td>
                 <td className="space-x-1">
                   <button
-                    className="btn btn-xs btn-warning"
+                    className="btn rounded btn-xs btn-warning"
                     onClick={() => handleEditClick(item)}
                   >
                     Edit
+                  </button>
+                  <button
+                    className="btn rounded btn-error btn-xs"
+                    onClick={() => askDelete(item.id)}
+                  >
+                    Hapus
                   </button>
                 </td>
               </tr>
@@ -91,7 +179,7 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
         </table>
       </div>
 
-      {/* Modal Edit */}
+      {/* Modal Edit Pembelian */}
       <dialog id="modal_edit_purchase_in" className="modal">
         <div className="modal-box bg-[#f5f5f5]">
           <h3 className="font-bold text-lg mb-2">Edit Pembelian</h3>
@@ -113,15 +201,6 @@ const TablePurchaseIn = ({ purchases, refreshData }) => {
               className="input input-bordered border-black bg-transparent"
               required
             />
-            {/* <select
-              className="select select-bordered"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="ordered">Ordered</option>
-              <option value="received">Received</option>
-              <option value="canceled">Canceled</option>
-            </select> */}
             <div className="modal-action">
               <button
                 type="button"

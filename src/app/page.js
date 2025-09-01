@@ -1,81 +1,58 @@
 "use client";
-
+import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function Home() {
-  const router = useRouter();
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
+    setError("");
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+    const res = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data.error || "Login gagal");
-      } else {
-        router.push("/dashboard");
-      }
-    } catch (err) {
-      setErrorMsg("Terjadi kesalahan");
-    } finally {
-      setLoading(false);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      router.push("/dashboard");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="flex h-screen items-center justify-center bg-gray-100">
       <form
         onSubmit={handleLogin}
-        className="bg-white p-6 rounded shadow w-full max-w-sm"
+        className="bg-white shadow-md rounded p-6 w-96"
       >
-        <h2 className="text-lg font-bold mb-4 text-center">Login</h2>
-
-        {errorMsg && (
-          <p className="text-red-500 text-sm mb-3 text-center">{errorMsg}</p>
-        )}
-
-        <div className="mb-3">
-          <label className="text-sm block mb-1">Email</label>
-          <input
-            type="email"
-            required
-            className="border w-full px-3 py-2 text-sm rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-sm block mb-1">Password</label>
-          <input
-            type="password"
-            required
-            className="border w-full px-3 py-2 text-sm rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-
+        <h1 className="text-xl mb-4">Login</h1>
+        {error && <div className="bg-red-200 p-2 mb-3 rounded">{error}</div>}
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full p-2 border rounded mb-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-2 border rounded mb-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
         <button
           type="submit"
-          disabled={loading}
-          className="bg-black text-white w-full py-2 rounded text-sm"
+          className="w-full bg-blue-500 text-white p-2 rounded"
         >
-          {loading ? "Memproses..." : "Masuk"}
+          Login
         </button>
       </form>
     </div>

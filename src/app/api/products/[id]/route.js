@@ -3,6 +3,8 @@ import pool from "@/app/lib/db";
 import fs from "fs/promises";
 import { existsSync, unlinkSync } from "fs";
 import path from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 /* ───────────── GET /api/products/[id] ───────────── */
 export const GET = async (_req, ctx) => {
@@ -13,7 +15,7 @@ export const GET = async (_req, ctx) => {
       `SELECT p.*, pi.image_url
        FROM products p
        LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1
-       WHERE p.id = ?`,
+       WHERE is_active = 1 AND p.id = ?`,
       [id]
     );
 
@@ -68,7 +70,7 @@ export const PUT = async (req, ctx) => {
     );
 
     if (oldRows.length === 0) {
-      await conn.release();
+      conn.release();
       return NextResponse.json(
         { error: "Produk tidak ditemukan" },
         { status: 404 }
@@ -161,6 +163,57 @@ export const PUT = async (req, ctx) => {
     }
     return NextResponse.json(
       { error: "Gagal mengupdate produk" },
+      { status: 500 }
+    );
+  }
+};
+
+export const DELETE = async (_req, ctx) => {
+  const { id } = await ctx.params;
+
+  // Validate id
+  if (!id || isNaN(Number(id))) {
+    return NextResponse.json(
+      { success: false, error: "ID produk tidak valid" },
+      { status: 400 }
+    );
+  }
+
+  // ambil session user
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  const { role } = session.user;
+
+  // cek role
+  if (role !== "admin" && role !== "owner") {
+    return NextResponse.json(
+      { success: false, error: "Akses ditolak! Hanya untuk Admin/Owner" },
+      { status: 403 }
+    );
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // soft delete: tandai produk tidak aktif
+    await conn.query(`UPDATE products SET is_active = 0 WHERE id = ?`, [id]);
+
+    conn.release();
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Soft delete error:", err);
+    if (conn) conn.release();
+    return NextResponse.json(
+      { success: false, error: "Gagal menonaktifkan produk" },
       { status: 500 }
     );
   }

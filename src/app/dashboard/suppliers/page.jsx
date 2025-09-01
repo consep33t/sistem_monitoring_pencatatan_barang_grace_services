@@ -1,11 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
+import AlertModal from "@/app/components/AlertModal";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 const SuppliersPage = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
   const [editForm, setEditForm] = useState(null);
-  const [alert, setAlert] = useState({ type: "", message: "" });
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  const showAlert = (type, message) => {
+    setAlert({ show: true, type, message });
+  };
+
+  // State Confirm
+  const [confirm, setConfirm] = useState({
+    show: false,
+    action: null,
+    message: "",
+  });
 
   const fetchSuppliers = async () => {
     try {
@@ -25,11 +42,6 @@ const SuppliersPage = () => {
     const target = isEdit ? editForm : form;
     const setter = isEdit ? setEditForm : setForm;
     setter({ ...target, [e.target.name]: e.target.value });
-  };
-
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert({ type: "", message: "" }), 3000);
   };
 
   const handleAdd = async () => {
@@ -70,20 +82,33 @@ const SuppliersPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus supplier ini?")) return;
-
-    const res = await fetch("/api/suppliers", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+  const openDeleteConfirm = (supplier) => {
+    setConfirm({
+      show: true,
+      action: () => handleDelete(supplier.id),
+      message: `Yakin ingin menghapus supplier ${supplier.name}?`,
     });
-    const result = await res.json();
-    if (result.success) {
-      fetchSuppliers();
-      showAlert("success", "Supplier berhasil dihapus");
-    } else {
-      showAlert("error", result.error || "Gagal menghapus supplier");
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch("/api/suppliers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        fetchSuppliers();
+        showAlert("success", "Supplier berhasil dihapus");
+      } else {
+        showAlert("error", result.error || "Gagal menghapus supplier");
+      }
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      showAlert("error", "Gagal menghapus supplier");
+    } finally {
+      setConfirm({ show: false, action: null, message: "" });
     }
   };
 
@@ -92,46 +117,24 @@ const SuppliersPage = () => {
       <h1 className="text-2xl font-bold mb-4">Data Supplier</h1>
 
       {/* Alert Section */}
-      {alert.message && (
-        <div className={`alert alert-${alert.type} mb-4`}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 shrink-0 stroke-current"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            {alert.type === "success" && (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            )}
-            {alert.type === "error" && (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            )}
-            {alert.type === "warning" && (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 9v2m0 4h.01M5.062 21h13.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.33 18c-.77 1.333.192 3 1.732 3z"
-              />
-            )}
-          </svg>
-          <span>{alert.message}</span>
-        </div>
-      )}
+      <AlertModal
+        show={alert.show}
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert({ ...alert, show: false })}
+      />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        show={confirm.show}
+        message={confirm.message}
+        onConfirm={() => confirm.action && confirm.action()}
+        onCancel={() => setConfirm({ show: false, action: null, message: "" })}
+      />
 
       {/* Tombol Tambah Supplier */}
       <button
-        className="btn btn-outline mb-4"
+        className="btn rounded btn-outline mb-4"
         onClick={() =>
           document.getElementById("modal_add_supplier").showModal()
         }
@@ -160,7 +163,7 @@ const SuppliersPage = () => {
                 <td>{s.address || "-"}</td>
                 <td>
                   <button
-                    className="btn btn-xs btn-warning mr-2"
+                    className="btn rounded btn-xs btn-warning mr-2"
                     onClick={() => {
                       setEditForm(s);
                       document
@@ -171,8 +174,8 @@ const SuppliersPage = () => {
                     Edit
                   </button>
                   <button
-                    className="btn btn-xs btn-error"
-                    onClick={() => handleDelete(s.id)}
+                    className="btn rounded btn-xs btn-error"
+                    onClick={() => openDeleteConfirm(s)}
                   >
                     Hapus
                   </button>
@@ -215,14 +218,14 @@ const SuppliersPage = () => {
             <div className="modal-action">
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn rounded btn-error"
                 onClick={handleAdd}
               >
                 Simpan
               </button>
               <button
                 type="button"
-                className="btn"
+                className="btn rounded"
                 onClick={() =>
                   document.getElementById("modal_add_supplier").close()
                 }
@@ -266,14 +269,14 @@ const SuppliersPage = () => {
             <div className="modal-action">
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn rounded btn-primary"
                 onClick={handleUpdate}
               >
                 Simpan
               </button>
               <button
                 type="button"
-                className="btn"
+                className="btn rounded"
                 onClick={() =>
                   document.getElementById("modal_edit_supplier").close()
                 }

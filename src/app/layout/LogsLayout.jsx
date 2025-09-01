@@ -30,7 +30,7 @@ const LogsLayout = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold my-4">Daftar Logs Pembelian</h1>
+      <h1 className="text-2xl font-bold mb-4 mt-8">Daftar Logs Pembelian</h1>
       <TableLogs logs={logs} />
     </div>
   );

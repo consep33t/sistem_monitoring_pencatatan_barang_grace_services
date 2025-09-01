@@ -3,9 +3,8 @@
 import { useCart } from "../context/CartContext";
 import { useEffect, useState, useRef } from "react";
 
-export default function CartPanel() {
+export default function CartPanel({ user }) {
   const { cartItems, removeFromCart, clearCart } = useCart();
-  const [user, setUser] = useState(null);
   const [now, setNow] = useState("");
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -41,18 +40,9 @@ export default function CartPanel() {
   }, 0);
   const total = subTotal - discountTotal + addCostTotal;
 
-  async function fetchSessionUser() {
-    const res = await fetch("/api/auth/session");
-    if (!res.ok) return null;
-    return await res.json();
-  }
-
   useEffect(() => {
     const date = new Date();
     setNow(date.toLocaleString("id-ID"));
-    fetchSessionUser().then((data) => {
-      if (data) setUser(data);
-    });
   }, []);
 
   const handlePrint = async () => {
@@ -335,16 +325,16 @@ export default function CartPanel() {
         <div
           className="invoice mx-auto"
           style={{
-            width: "219px",
+            width: "200px",
             fontFamily: "'Courier New', Courier, monospace",
-            fontSize: "5px",
+            fontSize: "3px",
             background: "#fff",
             wordBreak: "break-word",
           }}
         >
           <h2
             className="text-center font-bold mb-1"
-            style={{ fontSize: "6px" }}
+            style={{ fontSize: "4px" }}
           >
             TOKO MAJU JAYA
           </h2>

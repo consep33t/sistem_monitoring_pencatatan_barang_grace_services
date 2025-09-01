@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function GET() {
   const sql = `
@@ -57,7 +58,7 @@ export async function POST(req) {
   const body = await req.json();
   const {
     invoice_no,
-    customer, // { name, phone }
+    customer,
     sub_total,
     discount_total,
     grand_total,
@@ -73,17 +74,14 @@ export async function POST(req) {
   try {
     await conn.beginTransaction();
 
-    // 1. Ambil employee_id dari session
-    const cookieStore = cookies();
-    const session = cookieStore.get("session");
-    if (!session) throw new Error("User tidak login");
+    // ✅ Ambil session NextAuth
+    const session = await getServerSession(authOptions);
+    if (!session?.user) throw new Error("User tidak login");
 
-    const user = JSON.parse(session.value);
-    const employee_id = user.id;
+    const employee_id = session.user.id; // 👉 langsung pakai session.user.id
 
-    // 2. Tangani customer: cari berdasarkan name + phone
+    // ✅ Tangani customer
     let customer_id = null;
-
     if (customer && customer.name && customer.phone) {
       const [rows] = await conn.query(
         `SELECT id FROM customers WHERE name = ? AND phone = ? LIMIT 1`,
@@ -101,7 +99,7 @@ export async function POST(req) {
       }
     }
 
-    // 3. Insert ke tabel sales
+    // ✅ Insert sales
     const [salesResult] = await conn.query(
       `INSERT INTO sales
         (invoice_no, customer_id, employee_id, sub_total, discount_total, grand_total, paid, payment_method, notes, created_at)
@@ -120,10 +118,9 @@ export async function POST(req) {
     );
     const sales_id = salesResult.insertId;
 
-    // 4. Insert ke tabel sales_items
+    // ✅ Insert sales_items
     for (const item of items) {
       const { item_type, item_id, qty, unit_price, total } = item;
-
       await conn.query(
         `INSERT INTO sales_items
           (sales_id, item_type, product_id, service_id, qty, unit_price, total)
@@ -140,12 +137,13 @@ export async function POST(req) {
       );
     }
 
-    // 5. Insert biaya tambahan
+    // ✅ Insert biaya tambahan
     for (const cost of additional_costs) {
       const { name, cost: costValue } = cost;
       if (name && parseFloat(costValue) > 0) {
         await conn.query(
           `INSERT INTO additional_costs (sales_id, name, cost) VALUES (?, ?, ?)`,
+
           [sales_id, name, costValue]
         );
       }

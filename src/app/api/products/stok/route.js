@@ -11,6 +11,7 @@ export async function GET() {
         COALESCE(SUM(sm.qty), 0) AS stock_available
       FROM products p
       LEFT JOIN stock_movements sm ON p.id = sm.product_id
+      WHERE p.is_active = 1
       GROUP BY p.id, p.name, p.sku
       ORDER BY p.name ASC;
     `;

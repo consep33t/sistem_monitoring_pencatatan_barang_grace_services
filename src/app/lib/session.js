@@ -1,38 +1,15 @@
 import { cookies } from "next/headers";
-import pool from "./db";
+import jwt from "jsonwebtoken";
 
 export async function getSessionUser() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("session");
-  if (!session) return null;
+  const cookieStore = await cookies(); // ✅ sekarang pakai await
+  const token = cookieStore.get("token")?.value;
+  if (!token) return null;
 
   try {
-    const sessionData = JSON.parse(session.value);
-    const userId = sessionData.id;
-
-    const [rows] = await pool.query(
-      `
-      SELECT
-        e.id AS employee_id,
-        e.name AS employee_name,
-        e.email,
-        e.is_active,
-        e.created_at,
-        r.id AS role_id,
-        r.name AS role_name
-      FROM employees e
-      JOIN employee_roles er ON e.id = er.employee_id
-      JOIN roles r ON er.role_id = r.id
-      WHERE e.id = ?
-      `,
-      [userId]
-    );
-
-    if (rows.length === 0) return null;
-
-    return rows[0];
-  } catch (error) {
-    console.error("Gagal ambil sesi:", error);
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    return user;
+  } catch (err) {
     return null;
   }
 }

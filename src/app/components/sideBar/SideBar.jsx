@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const links = [
   { href: "/dashboard", label: "Kasir" },
@@ -13,13 +14,6 @@ const links = [
 
 const SideBar = ({ user }) => {
   const pathname = usePathname();
-
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-  };
 
   return (
     <div className="flex flex-col justify-between h-screen py-5 px-5 ">
@@ -40,8 +34,11 @@ const SideBar = ({ user }) => {
         ))}
       </div>
       <div className="flex flex-col items-center gap-2">
-        <h1 className="font-bold">Selamat Datang, {user.employee_name}</h1>
-        <button className="btn" onClick={handleLogout}>
+        <h1 className="font-bold">Selamat Datang, {user.name}</h1>
+        <button
+          className="btn rounded"
+          onClick={() => signOut({ callbackUrl: "/" })}
+        >
           logout
         </button>
       </div>

@@ -86,7 +86,7 @@ const SalesLayout = () => {
   };
 
   return (
-    <div className="overflow-y-scroll">
+    <div className="overflow-y-scroll w-full">
       <div className="flex space-x-4">
         <h1>Sales Dashboard</h1>
         <p>Total Sales: {sales.length}</p>
@@ -102,7 +102,7 @@ const SalesLayout = () => {
         />
         <button
           type="submit"
-          className="btn btn-neutral btn-outline ml-2"
+          className="btn rounded btn-neutral btn-outline ml-2 mb-1"
           disabled={searchLoading}
         >
           {searchLoading ? "Searching..." : "Cari"}
@@ -112,41 +112,33 @@ const SalesLayout = () => {
       {sales.length === 0 ? (
         <p>No sales found.</p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="min-w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>ID</th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Nama Pelanggan
-              </th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>Date</th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Items
-              </th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Total Harga
-              </th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Nama Pegawai
-              </th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>Aksi</th>
+              <th className="border border-gray-300 p-2">ID</th>
+              <th className="border border-gray-300 p-2">Nama Pelanggan</th>
+              <th className="border border-gray-300 p-2">Date</th>
+              <th className="border border-gray-300 p-2">Items</th>
+              <th className="border border-gray-300 p-2">Total Harga</th>
+              <th className="border border-gray-300 p-2">Nama Pegawai</th>
+              <th className="border border-gray-300 p-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {sales.map((sale) => (
               <tr key={sale.sales_id}>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 text-center">
                   {sale.sales_id}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 p-2">
                   {sale.customer_name}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 text-center">
                   {sale.created_at
                     ? new Date(sale.created_at).toLocaleDateString()
                     : "N/A"}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 p-2">
                   <ul style={{ margin: 0, paddingLeft: 20 }}>
                     {sale.items && sale.items.length > 0 ? (
                       sale.items.map((item) => (
@@ -159,15 +151,15 @@ const SalesLayout = () => {
                     )}
                   </ul>
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 p-2">
                   Rp {Number(sale.grand_total).toLocaleString("id-ID")}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="border border-gray-300 p-2">
                   <p>{sale.employee_name}</p>
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <td className="self-center justify-self-center border border-gray-300 text-center">
                   <button
-                    className="btn"
+                    className="btn btn-sm rounded"
                     onClick={() => handleShowDetail(sale.sales_id)}
                   >
                     Detail

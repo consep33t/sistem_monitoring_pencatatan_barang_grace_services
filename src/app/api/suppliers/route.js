@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 // ✅ GET all suppliers
 export async function GET() {
@@ -72,9 +74,28 @@ export async function PATCH(req) {
   }
 }
 
-// ✅ DELETE supplier by ID (dikirim lewat body)
+// ✅ DELETE supplier by ID (khusus admin & owner)
 export async function DELETE(req) {
   try {
+    const session = await getServerSession(authOptions); // 🔑 cek session login
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const role = session.user.role; // pastikan role disimpan di user
+    if (role !== "admin" && role !== "owner") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Hanya admin & owner yang bisa menghapus supplier",
+        },
+        { status: 403 }
+      );
+    }
+
     const { id } = await req.json();
 
     if (!id) {

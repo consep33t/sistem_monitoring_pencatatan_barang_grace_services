@@ -1,8 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
 import TablePurchaseIn from "../components/table/TablePurchaseIn";
+import AlertModal from "../components/AlertModal";
 
 const PurchaseInPage = ({ user }) => {
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  const showAlert = (type, message) => {
+    setAlert({ show: true, type, message });
+  };
+
   const [data, setData] = useState([]);
   const [form, setForm] = useState({
     product_id: "",
@@ -42,7 +53,7 @@ const PurchaseInPage = ({ user }) => {
   const handleSubmit = async () => {
     const { product_id, qty, cost, supplier_id } = form;
     if (!product_id || !qty || !cost || !supplier_id) {
-      alert("Semua field wajib diisi");
+      showAlert("error", "Semua field wajib diisi");
       return;
     }
 
@@ -54,27 +65,34 @@ const PurchaseInPage = ({ user }) => {
         qty: parseInt(qty),
         cost: parseFloat(cost),
         supplier_id: parseInt(supplier_id),
-        employee_id: user?.employee_id || null,
+        employee_id: user?.id || null,
       }),
     });
 
     const result = await res.json();
     if (result.success) {
-      alert("Berhasil menambahkan pembelian");
+      showAlert("success", "Berhasil menambahkan pembelian");
       document.getElementById("modal_add_purchase_in").close();
       setForm({ product_id: "", qty: "", cost: "", supplier_id: "" });
       fetchData();
+      window.location.reload();
     } else {
-      alert("Gagal: " + result.error);
+      showAlert("error", "Gagal: " + result.error);
     }
   };
 
   return (
-    <div className="p-4">
+    <div className="mt-8">
+      <AlertModal
+        show={alert.show}
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert({ ...alert, show: false })}
+      />
       <h1 className="text-xl font-bold mb-4">Pembelian Masuk</h1>
 
       <button
-        className="btn btn-outline mb-4"
+        className="btn rounded btn-outline mb-4"
         onClick={() =>
           document.getElementById("modal_add_purchase_in").showModal()
         }

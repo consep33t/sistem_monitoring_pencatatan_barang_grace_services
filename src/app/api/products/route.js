@@ -102,6 +102,7 @@ export const GET = async () => {
       SELECT p.id, p.sku, p.name, p.category, p.brand, p.unit_cost, p.unit_price, pi.image_url
       FROM products p
       LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1
+      WHERE p.is_active = 1
       ORDER BY p.id DESC
     `;
 

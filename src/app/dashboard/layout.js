@@ -1,19 +1,20 @@
 import SideBar from "../components/sideBar/SideBar";
 import { CartProvider } from "../context/CartContext";
-import { getSessionUser } from "../lib/session";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({ children }) {
-  const user = await getSessionUser();
+  const session = await getServerSession(authOptions);
 
-  if (!user) {
+  if (!session) {
     redirect("/");
   }
 
   return (
     <div className="w-full h-[100dvh] flex flex-col md:flex-row antialiased">
       <div className="left w-1/5 bg-white shadow-2xl">
-        <SideBar user={user} />
+        <SideBar user={session?.user} />
       </div>
       <div className="flex-1">
         <CartProvider>{children}</CartProvider>
