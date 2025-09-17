@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // GET employee by id (dengan rolenya)
 export async function GET(_, { params }) {
