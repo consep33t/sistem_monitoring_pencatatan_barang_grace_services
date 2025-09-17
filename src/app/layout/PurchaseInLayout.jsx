@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import TablePurchaseIn from "../components/table/TablePurchaseIn";
 import AlertModal from "../components/AlertModal";
 
-const PurchaseInPage = ({ user }) => {
+const PurchaseInPage = ({ user, purchases }) => {
   const [alert, setAlert] = useState({
     show: false,
     type: "success",
@@ -14,7 +14,7 @@ const PurchaseInPage = ({ user }) => {
     setAlert({ show: true, type, message });
   };
 
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(purchases);
   const [form, setForm] = useState({
     product_id: "",
     qty: "",

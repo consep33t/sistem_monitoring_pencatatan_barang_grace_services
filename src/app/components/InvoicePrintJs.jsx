@@ -2,88 +2,96 @@
 
 import React from "react";
 
-export default function InvoicePrint58mm() {
+export default function InvoicePrint58mm({ invoiceData }) {
   const handlePrint = async () => {
+    // Ensure invoiceData and items exist before proceeding
+    if (!invoiceData || !invoiceData.items) {
+      console.error("Invoice data is missing or invalid.");
+      return;
+    }
+
     const printJS = (await import("print-js")).default;
 
-    printJS({
-      printable: "invoice-print-area",
-      type: "html",
-      style: `
-        * {
-          font-family: monospace;
-          box-sizing: border-box;
-        }
-        body, html {
-          margin: 0;
-          padding: 0;
-        }
-        .invoice {
-          width: 58mm;
-          padding: 5px;
-          font-size: 5px;
-        }
-        .invoice h2 {
-          text-align: center;
-          font-size: 14px;
-          margin-bottom: 5px;
-        }
-        .invoice .center {
-          text-align: center;
-        }
-        .invoice .right {
-          text-align: right;
-        }
-        .invoice .bold {
-          font-weight: bold;
-        }
-        .invoice .divider {
-          border-top: 1px dashed black;
-          margin: 6px 0;
-        }
-        .invoice table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .invoice td {
-          padding: 2px;
-        }
+    // Dynamically generate a clean HTML string for printing
+    const generatePrintHTML = (data) => {
+      const total = data.items.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0
+      );
 
-        @media print {
-          body {
-            width: 58mm;
-          }
-        }
-      `,
+      const itemsHTML = data.items
+        .map(
+          (item) => `
+        <tr>
+          <td style="text-align: left; padding: 1mm 0;">${item.name}</td>
+          <td style="text-align: center; padding: 1mm 0;">${
+            item.quantity
+          }</td>
+          <td style="text-align: right; padding: 1mm 0;">${item.price.toLocaleString()}</td>
+        </tr>
+      `
+        )
+        .join("");
+
+      // Using a template literal to build the HTML string.
+      // This is often more reliable for printers than styling a React component.
+      const html = `
+        <div style="width: 58mm; box-sizing: border-box; padding: 0 1mm; font-family: 'Courier New', monospace; font-size: 8px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tbody>
+              <tr><td colspan="3" style="text-align: center; padding: 2mm 0; font-size: 10px; font-weight: bold;">INVOICE</td></tr>
+              <tr><td colspan="3" style="padding: 0.5mm 0;">No Invoice: ${
+                data.invoiceNumber
+              }</td></tr>
+              <tr><td colspan="3" style="padding: 0.5mm 0;">Tanggal: ${
+                data.date
+              }</td></tr>
+              <tr><td colspan="3" style="padding: 0.5mm 0;">Nama: ${
+                data.customerName
+              }</td></tr>
+              <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+              <tr>
+                <th style="text-align: left; padding-bottom: 1mm;">Item</th>
+                <th style="text-align: center; padding-bottom: 1mm;">Qty</th>
+                <th style="text-align: right; padding-bottom: 1mm;">Harga</th>
+              </tr>
+              ${itemsHTML}
+              <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+              <tr>
+                <td colspan="2" style="text-align: right; font-weight: bold; padding: 1mm 0;">Total:</td>
+                <td style="text-align: right; font-weight: bold; padding: 1mm 0;">${total.toLocaleString()}</td>
+              </tr>
+              <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+              <tr><td colspan="3" style="text-align: center; padding-top: 2mm;">Terima kasih!</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      return html;
+    };
+
+    const printableHTML = generatePrintHTML(invoiceData);
+
+    printJS({
+      printable: printableHTML,
+      type: "raw-html",
+      // Using a regular string for style to avoid any template literal issues.
+      style: "@page { size: 58mm 210mm; margin: 0; } body { margin: 0; }",
     });
   };
-
-  const items = [
-    { name: "Beras 5kg", qty: 1, price: 60000 },
-    { name: "Minyak Goreng 2L", qty: 2, price: 30000 },
-    { name: "Gula Pasir 1kg", qty: 1, price: 15000 },
-    { name: "Sabun Cuci", qty: 3, price: 6000 },
-    { name: "Teh Celup", qty: 2, price: 10000 },
-    { name: "Tissue Gulung", qty: 4, price: 7500 },
-    { name: "Kopi Instan", qty: 1, price: 20000 },
-    { name: "Susu Bubuk", qty: 2, price: 25000 },
-    { name: "Mie Instan", qty: 5, price: 3000 },
-    { name: "Biskuit", qty: 1, price: 15000 },
-  ];
-
-  const total = items.reduce((sum, item) => sum + item.qty * item.price, 0);
 
   return (
     <div className="p-4">
       <button
         onClick={handlePrint}
-        className="mb-4 px-4 py-2 bg-black text-white rounded"
+        className="mb-4 px-4 py-2 bg-black text-white rounded no-print"
       >
         Cetak Struk 58mm
       </button>
 
+      {/* This hidden div is no longer used for printing but can be kept for screen display if needed */}
       <div
-        id="invoice-print-area"
+        id="invoice-screen-area"
         style={{
           visibility: "hidden",
           position: "absolute",
@@ -92,35 +100,7 @@ export default function InvoicePrint58mm() {
           zIndex: -1,
         }}
       >
-        <div className="invoice">
-          <h2>TOKO MAJU JAYA</h2>
-          <div className="center">Jl. Contoh No.123</div>
-          <div className="center">19-06-2025 14:23</div>
-          <div className="divider"></div>
-          <table>
-            <tbody>
-              {items.map((item, i) => (
-                <tr key={i}>
-                  <td>{item.name}</td>
-                  <td className="center">x{item.qty}</td>
-                  <td className="right">Rp.{item.price.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="divider"></div>
-          <table>
-            <tbody>
-              <tr>
-                <td className="bold">TOTAL</td>
-                <td></td>
-                <td className="right bold">Rp{total.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div className="divider"></div>
-          <div className="center">Terima kasih!</div>
-        </div>
+        {/* You can still render InvoiceContent here for other purposes if you want */}
       </div>
     </div>
   );

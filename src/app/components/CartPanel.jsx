@@ -1,7 +1,7 @@
 "use client";
 
 import { useCart } from "../context/CartContext";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export default function CartPanel({ user }) {
   const { cartItems, removeFromCart, clearCart } = useCart();
@@ -12,7 +12,6 @@ export default function CartPanel({ user }) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const printRef = useRef(null);
 
   const [paymentMethods] = useState([
     { id: 1, name: "cash" },
@@ -54,13 +53,15 @@ export default function CartPanel({ user }) {
 
     setIsPrinting(true);
 
+    const invoiceNo = `INV${new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "")}-${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`;
+
     const payload = {
-      invoice_no: `INV${new Date()
-        .toISOString()
-        .slice(0, 10)
-        .replace(/-/g, "")}-${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0")}`,
+      invoice_no: invoiceNo,
       customer: {
         name: customerName.trim(),
         phone: customerPhone.trim(),
@@ -98,28 +99,112 @@ export default function CartPanel({ user }) {
       if (!res.ok) throw new Error(data.error || "Gagal simpan data");
 
       const printJS = (await import("print-js")).default;
+
+      // --- RAW HTML GENERATION FOR PRINTING ---
+      const generatePrintHTML = () => {
+        const itemsHTML = cartItems
+          .map(
+            (item) => `
+          <tr>
+            <td style="width: 50%; text-align: left; padding: 1mm 0; vertical-align: top; word-break: break-all;">${
+              item.name
+            }</td>
+            <td style="width: 15%; text-align: center; padding: 1mm 0; vertical-align: top;">${
+              item.qty
+            }</td>
+            <td style="width: 35%; text-align: right; padding: 1mm 0; vertical-align: top;">${(
+              item.price * item.qty -
+              (item.diskon || 0) * item.qty
+            ).toLocaleString("id-ID")}</td>
+          </tr>
+        `
+          )
+          .join("");
+
+        const selectedPaymentMethod = paymentMethods.find(
+          (pm) => pm.id === parseInt(paymentMethod)
+        )?.name;
+
+        const additionalCostsHTML = additionalCosts
+          .filter((ac) => ac.name && parseFloat(ac.cost) > 0)
+          .map(
+            (ac) => `
+          <tr>
+            <td colspan="2" style="text-align: right; padding: 0.5mm 0;">${
+              ac.name
+            }:</td>
+            <td style="text-align: right; padding: 0.5mm 0;">${parseFloat(
+              ac.cost
+            ).toLocaleString("id-ID")}</td>
+          </tr>
+        `
+          )
+          .join("");
+
+        const extraDiscountValue = parseFloat(extraDiscount);
+        const extraDiscountHTML =
+          extraDiscountValue > 0
+            ? `
+          <tr>
+            <td colspan="2" style="text-align: right; padding: 0.5mm 0;">Diskon:</td>
+            <td style="text-align: right; padding: 0.5mm 0;">-${extraDiscountValue.toLocaleString(
+              "id-ID"
+            )}</td>
+          </tr>
+        `
+            : "";
+
+        const noteHTML = note
+          ? `
+          <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+          <tr><td colspan="3" style="text-align: left; padding: 0.5mm 0; font-weight: semi-bold;">Catatan:</td></tr>
+          <tr><td colspan="3" style="text-align: left; padding: 0.5mm 0; word-break: break-all;">${note}</td></tr>
+        `
+          : "";
+
+        const html = `
+          <div style="width: 48mm; box-sizing: border-box; padding: 0 1mm; font-family: sans-serif; font-size: 10px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody>
+                <tr><td colspan="3" style="text-align: center; padding: 1mm 0; font-size: 12px; font-weight: bold;">Grace services</td></tr>
+                <tr><td colspan="3" style="text-align: center; font-weight: semi-bold; padding-bottom: 1mm;">${now}</td></tr>
+                <tr><td colspan="3" style="padding: 0.5mm 0; font-weight: semi-bold;">No: ${invoiceNo}</td></tr>
+                <tr><td colspan="3" style="padding: 0.5mm 0; font-weight: semi-bold;">Customer: ${customerName}</td></tr>
+                <tr><td colspan="3" style="padding: 0.5mm 0; font-weight: semi-bold;">Metode Pembayaran: ${selectedPaymentMethod}</td></tr>
+                <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+                <tr>
+                  <th style="width: 50%; text-align: left; font-weight: semi-bold; padding-bottom: 1mm;">Item</th>
+                  <th style="width: 15%; text-align: center; font-weight: semi-bold; padding-bottom: 1mm;">Qty</th>
+                  <th style="width: 35%; text-align: right; font-weight: semi-bold; padding-bottom: 1mm;">Subtotal</th>
+                </tr>
+                ${itemsHTML}
+                <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+                ${additionalCostsHTML}
+                ${extraDiscountHTML}
+                <tr>
+                  <td colspan="2" style="text-align: right; font-weight: bold; padding: 0.5mm 0;">Total:</td>
+                  <td style="text-align: right; font-weight: bold; padding: 0.5mm 0;">${total.toLocaleString(
+                    "id-ID"
+                  )}</td>
+                </tr>
+                ${noteHTML}
+                <tr><td colspan="3" style="border-top: 1px dashed black; padding: 1mm 0;"></td></tr>
+                <tr><td colspan="3" style="text-align: center; padding-top: 1mm;">Terima kasih!</td></tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return html;
+      };
+
+      const printableHTML = generatePrintHTML();
+
       printJS({
-        printable: "invoice-print-area",
-        type: "html",
-        style: `
-          .invoice th, .invoice td {
-            padding: 2px 0;
-            font-size: 10px;
-          }
-          .invoice .item-row td {
-            border-bottom: 1px dotted #ccc;
-          }
-          .invoice .total-row td {
-            font-weight: bold;
-            font-size: 11px;
-          }
-          .invoice .footer {
-            margin-top: 5px;
-            text-align: center;
-            font-size: 6px;
-          }
-        `,
+        printable: printableHTML,
+        type: "raw-html",
+        style: "@page { size: 58mm 210mm; margin: 0; } body { margin: 0; }",
       });
+      // --- END OF RAW HTML GENERATION ---
 
       clearCart();
       setNote("");
@@ -310,10 +395,9 @@ export default function CartPanel({ user }) {
         </button>
       </div>
 
-      {/* CETAK AREA */}
+      {/* The hidden print area is no longer used for printing */}
       <div
         id="invoice-print-area"
-        ref={printRef}
         style={{
           visibility: "hidden",
           position: "absolute",
@@ -322,93 +406,7 @@ export default function CartPanel({ user }) {
           zIndex: -1,
         }}
       >
-        <div
-          className="invoice mx-auto"
-          style={{
-            width: "200px",
-            fontFamily: "'Courier New', Courier, monospace",
-            fontSize: "3px",
-            background: "#fff",
-            wordBreak: "break-word",
-          }}
-        >
-          <h2
-            className="text-center font-bold mb-1"
-            style={{ fontSize: "4px" }}
-          >
-            TOKO MAJU JAYA
-          </h2>
-          <div className="center mb-1">{now}</div>
-          <div className="divider" />
-
-          <table style={{ width: "100%" }}>
-            <thead>
-              <tr>
-                <th align="left">Barang</th>
-                <th>Qty</th>
-                <th>Diskon</th>
-                <th align="right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cartItems.map((item, i) => (
-                <tr key={i} className="item-row">
-                  <td>{item.name}</td>
-                  <td align="center">{item.qty}</td>
-                  <td align="right">
-                    {item.diskon ? `Rp${item.diskon.toLocaleString()}` : "-"}
-                  </td>
-                  <td align="right">
-                    Rp
-                    {(
-                      item.price * item.qty -
-                      (item.diskon || 0) * item.qty
-                    ).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {additionalCosts
-                .filter((ac) => ac.name && parseFloat(ac.cost) > 0)
-                .map((ac, i) => (
-                  <tr key={"ac-" + i} className="item-row">
-                    <td colSpan={3}>{ac.name}</td>
-                    <td align="right">
-                      Rp{parseFloat(ac.cost).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              {extraDiscount && parseFloat(extraDiscount) > 0 && (
-                <tr className="item-row">
-                  <td colSpan={3}>Diskon Tambahan</td>
-                  <td align="right">
-                    - Rp{parseFloat(extraDiscount).toLocaleString()}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="divider" />
-          <table style={{ width: "100%" }}>
-            <tbody>
-              <tr className="total-row">
-                <td colSpan={3}>TOTAL</td>
-                <td align="right">Rp{total.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="divider" />
-          {note && (
-            <div className="mt-1" style={{ fontSize: "6px" }}>
-              <b>Catatan:</b> {note}
-            </div>
-          )}
-          <div className="footer">
-            <div>Terima kasih atas kunjungan Anda!</div>
-            <div>Barang yang sudah dibeli tidak dapat dikembalikan.</div>
-          </div>
-        </div>
+        {/* Content can be removed or kept for debugging */}
       </div>
     </div>
   );

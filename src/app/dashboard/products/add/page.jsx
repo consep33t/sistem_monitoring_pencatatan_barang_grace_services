@@ -1,4 +1,4 @@
-const { default: ProductForm } = require("@/app/components/form/ProductForm");
+const { default: ProductForm } = require("@/app/components/form/ProductForm ");
 
 const addProductPage = () => {
   return <ProductForm />;
